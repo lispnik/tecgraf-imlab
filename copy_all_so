@@ -1,0 +1,36 @@
+#!/bin/bash
+
+Copy_SOs()
+{
+  PLAT=$1
+#  LUA_SFX=$2
+  EXT=$2
+  
+  BASE_TEC=..
+#  BASE_TEC=~tecgraf/lib
+  
+  echo Copying $PLAT
+  DEST=bin/$PLAT
+  mkdir -p $DEST
+#  cp -f ../lib/$PLAT/*.$EXT $DEST
+  cp -f $BASE_TEC/iup/lib/$PLAT/*.$EXT $DEST
+  cp -f $BASE_TEC/cd/lib/$PLAT/*.$EXT $DEST
+  cp -f $BASE_TEC/im/lib/$PLAT/*.$EXT $DEST
+  cp -f $BASE_TEC/ftgl/lib/$PLAT/*.$EXT $DEST
+#  cp -f ../lib/$PLAT/Lua$LUA_SFX/*.$EXT $DEST
+#  cp -f $BASE_TEC/cd/lib/$PLAT/Lua$LUA_SFX/*.$EXT $DEST
+#  cp -f $BASE_TEC/im/lib/$PLAT/Lua$LUA_SFX/*.$EXT $DEST
+#  cp -f $BASE_TEC/lua$LUA_SFX/bin/$PLAT/lua5* $DEST
+#  cp -f $BASE_TEC/luagl/lib/$PLAT/Lua$LUA_SFX/*.$EXT $DEST
+#  cp -f $BASE_TEC/lfs/lib/$PLAT/Lua$LUA_SFX/*.$EXT $DEST
+}
+
+# MacOS1010 Linux32 Linux32_64 SunOS511x86
+
+for plat in Linux26g4_64 Linux35_64 Linux313_64 Linux319_64 Linux44_64 Linux415_64 Linux50_64 Linux54_64
+do
+  Copy_SOs $plat so
+  if [ $plat == MacOS1010 ]; then
+    Copy_SOs $plat dylib
+  fi
+done

@@ -1,0 +1,53 @@
+#!/bin/bash
+
+Copy_DLLs()
+{
+  PLAT=$1
+  SYS=$2
+#  LUA_SFX=$3
+  
+  if [ $SYS == Win64 ]; then
+    SFX=_64
+    PLAT=$PLAT$SFX
+  fi
+  
+  BASE_TEC=..
+  BASE_EXTRA=..
+#  BASE_TEC=~tecgraf/lib
+#  BASE_EXTRA=~scuri/tecgraf
+  
+  echo Copying $PLAT => $SYS
+  DEST=bin/$SYS
+  mkdir -p $DEST
+#  cp -f ../lib/$PLAT/*.dll $DEST
+  cp -f $BASE_TEC/iup/lib/$PLAT/*.dll $DEST
+  cp -f $BASE_TEC/cd/lib/$PLAT/*.dll $DEST
+  cp -f $BASE_TEC/im/lib/$PLAT/*.dll $DEST
+  cp -f $BASE_TEC/ftgl/lib/$PLAT/*.dll $DEST
+  cp -f $BASE_TEC/freetype/lib/$PLAT/*.dll $DEST
+  cp -f $BASE_TEC/zlib/lib/$PLAT/*.dll $DEST
+  cp -f $BASE_TEC/fftw3/lib/$SYS/*.dll $DEST
+#  cp -f ../lib/$PLAT/Lua$LUA_SFX/*.dll $DEST
+#  cp -f $BASE_TEC/cd/lib/$PLAT/Lua$LUA_SFX/*.dll $DEST
+#  cp -f $BASE_TEC/im/lib/$PLAT/Lua$LUA_SFX/*.dll $DEST
+#  cp -f $BASE_TEC/lua$LUA_SFX/lib/$PLAT/*.dll $DEST
+#  cp -f $BASE_TEC/lua$LUA_SFX/bin/$SYS.$PLAT/*ua5*.exe $DEST
+#  cp -f $BASE_TEC/luagl/lib/$PLAT/Lua$LUA_SFX/*.dll $DEST
+#  cp -f $BASE_TEC/lfs/lib/$PLAT/Lua$LUA_SFX/*.dll $DEST
+#  cp -f $BASE_EXTRA/luacom/lib/$PLAT/Lua$LUA_SFX/*.dll $DEST
+  
+  #Copy Run Time Libraries
+  if [ $1 == dll8 ]; then
+    cp -fr ../dist/Microsoft.VC80/$SYS/Microsoft.VC80.CRT $DEST
+    cp -fr ../dist/Microsoft.VC80/$SYS/Microsoft.VC80.OPENMP $DEST
+  fi
+  if [ $1 == dll10 ]; then
+    cp -f ../dist/Microsoft.VC100/$PLAT/* $DEST
+  fi
+}
+
+#DLL=dll10
+DLL=dll15
+
+Copy_DLLs $DLL Win32
+#Copy_DLLs $DLL Win64

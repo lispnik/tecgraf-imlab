@@ -1,0 +1,8 @@
+# CMake build tree
+/build/
+# tecmake output, if the old build system is ever run
+/obj/
+/lib/
+/bin/
+# macOS
+.DS_Store
