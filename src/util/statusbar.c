@@ -376,15 +376,31 @@ sbStatusBar* sbCreate(Ihandle* canvas)
 
 	  /* The text used to be drawn in CD_BLACK against this background, which is fine only while
 	     the background is light. On a dark desktop theme the dialog background comes back dark
-	     and the status bar text disappeared into it, so take the matching foreground from the
-	     toolkit as well. DLGFGCOLOR is what IUP reports for text on a dialog background. */
-	  if (IupGetGlobal("DLGFGCOLOR"))
-	    IupGetRGB(NULL, "DLGFGCOLOR", &r, &g, &b);
-	  else
+	     and the status bar text disappeared into it.
+
+	     DLGFGCOLOR is what the toolkit reports for text on a dialog background, so ask for that
+	     first -- but check it before trusting it. A platform that does not report one, or
+	     reports one that happens not to contrast with this particular background, would put us
+	     straight back where we started, so fall back to plain black or white by luminance. */
 	  {
-	    r = 0; g = 0; b = 0;
+	    unsigned char br = r, bg = g, bb = b;   /* the background, from just above */
+	    double back_luma = (0.299*br + 0.587*bg + 0.114*bb) / 255.0;
+	    double fore_luma;
+
+	    r = g = b = 0;
+	    if (IupGetGlobal("DLGFGCOLOR"))
+	      IupGetRGB(NULL, "DLGFGCOLOR", &r, &g, &b);
+
+	    fore_luma = (0.299*r + 0.587*g + 0.114*b) / 255.0;
+
+	    if (fabs(fore_luma - back_luma) < 0.3)
+	    {
+	      unsigned char v = (back_luma < 0.5) ? 255 : 0;
+	      r = g = b = v;
+	    }
+
+	    sb->foreground = cdEncodeColor(r, g, b);
 	  }
-	  sb->foreground = cdEncodeColor(r, g, b);
   }
 
   sbRepaint(canvas);
