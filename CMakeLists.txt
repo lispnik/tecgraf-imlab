@@ -37,7 +37,7 @@ if(IMLAB_USE_SYSTEM_IUP)
 elseif(NOT IUP_ROOT)
     foreach(candidate
             "$ENV{IUP}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../../iupcocoa-scratch/iup")
+            "${CMAKE_CURRENT_SOURCE_DIR}/../tecgraf-iup")
         if(candidate AND EXISTS "${candidate}/include/iup.h" AND EXISTS "${candidate}/srcplot")
             get_filename_component(IUP_ROOT "${candidate}" ABSOLUTE)
             break()
