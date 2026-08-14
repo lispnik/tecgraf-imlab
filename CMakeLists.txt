@@ -284,9 +284,16 @@ add_custom_command(TARGET imlab POST_BUILD
             "${CMAKE_CURRENT_SOURCE_DIR}/krn" "$<TARGET_FILE_DIR:imlab>/krn"
     COMMENT "Copying ImLab images and convolution kernels beside the executable")
 
-install(TARGETS imlab RUNTIME DESTINATION bin)
-install(DIRECTORY etc/ DESTINATION bin FILES_MATCHING PATTERN "*.png")
-install(DIRECTORY krn/ DESTINATION bin/krn)
+# Where things land. The images have to sit beside the executable -- ImLab looks there, and
+# only there, for ImLab.png at startup -- but a package may not want a directory of data files
+# in its bin, so the executable's directory is a variable. The convolution kernels are ordinary
+# data the user opens through a file dialog, so they can go somewhere conventional.
+set(IMLAB_INSTALL_BINDIR "bin" CACHE STRING "Where to install the executable and its images")
+set(IMLAB_INSTALL_DATADIR "${IMLAB_INSTALL_BINDIR}" CACHE STRING "Where to install the kernels")
+
+install(TARGETS imlab RUNTIME DESTINATION "${IMLAB_INSTALL_BINDIR}")
+install(DIRECTORY etc/ DESTINATION "${IMLAB_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.png")
+install(DIRECTORY krn/ DESTINATION "${IMLAB_INSTALL_DATADIR}/krn")
 
 message(STATUS "")
 message(STATUS "ImLab ${PROJECT_VERSION}")
