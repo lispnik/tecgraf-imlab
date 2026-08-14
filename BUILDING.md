@@ -28,6 +28,24 @@ IUP can arrive in either of two shapes and the build takes both:
 A source tree wins when one is found, so working on IUP and ImLab together does not mean
 reinstalling IUP between builds; `-DIMLAB_USE_SYSTEM_IUP=ON` forces the installed one.
 
+## The macOS application bundle
+
+The build also produces `ImLab.app` beside the executable, with an icon generated from
+`etc/ImLabLogo.png`, an `Info.plist` from `mak.macos/Info.plist.in`, and an ad-hoc signature --
+without which a bundle copied from another machine is refused outright on Apple silicon.
+
+    cmake --build build          # builds both build/imlab and build/ImLab.app
+    open build/ImLab.app
+
+It is assembled from the executable that was just built rather than compiled again as a
+separate `MACOSX_BUNDLE` target: it is the same program, and a second target would double the
+build for no difference in the result. `-DIMLAB_BUILD_APP_BUNDLE=OFF` skips it.
+
+The images live in `Contents/MacOS`, beside the executable, rather than in `Contents/Resources`
+where a Mac application would normally keep them -- that is where ImLab looks for `ImLab.png`
+at startup (`load_image_imlab_logo` in `src/splash.cpp` searches the executable's own directory
+and the one above it).
+
 ## What it links against
 
 | Dependency | Where it comes from |

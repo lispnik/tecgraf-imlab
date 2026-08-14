@@ -290,6 +290,99 @@ add_custom_command(TARGET imlab POST_BUILD
 # data the user opens through a file dialog, so they can go somewhere conventional.
 set(IMLAB_INSTALL_BINDIR "bin" CACHE STRING "Where to install the executable and its images")
 set(IMLAB_INSTALL_DATADIR "${IMLAB_INSTALL_BINDIR}" CACHE STRING "Where to install the kernels")
+set(IMLAB_INSTALL_APPDIR "." CACHE STRING "Where to install ImLab.app, when one is built")
+
+# --------------------------------------------------------------- macOS .app bundle ----
+#
+# The bundle is assembled from the executable that was just built rather than compiled a second
+# time as a MACOSX_BUNDLE target: it is the same program, and a second target would double the
+# build for no difference in the result. The command line executable is kept as well, because
+# it is what a package installs and what anything scripted expects to find.
+#
+# The images go beside the executable inside Contents/MacOS rather than into Contents/Resources,
+# because that is where ImLab looks for ImLab.png at startup -- see load_image_imlab_logo in
+# src/splash.cpp, which searches the executable's own directory and the one above it.
+
+if(APPLE)
+    option(IMLAB_BUILD_APP_BUNDLE "Also produce ImLab.app" ON)
+endif()
+
+if(APPLE AND IMLAB_BUILD_APP_BUNDLE)
+    set(IMLAB_BUNDLE_EXECUTABLE imlab)
+    set(IMLAB_BUNDLE_IDENTIFIER "net.sourceforge.imlab")
+    set(IMLAB_VERSION "${PROJECT_VERSION}")
+
+    set(IMLAB_APP "${CMAKE_CURRENT_BINARY_DIR}/ImLab.app")
+
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/mak.macos/Info.plist.in"
+                   "${CMAKE_CURRENT_BINARY_DIR}/Info.plist" @ONLY)
+
+    # The icon is built from the same artwork the splash screen uses. iconutil and sips ship
+    # with macOS, but check anyway -- a missing icon should cost the icon, not the bundle.
+    find_program(IMLAB_SIPS sips)
+    find_program(IMLAB_ICONUTIL iconutil)
+
+    set(IMLAB_ICNS "")
+    if(IMLAB_SIPS AND IMLAB_ICONUTIL)
+        set(IMLAB_ICONSET "${CMAKE_CURRENT_BINARY_DIR}/ImLab.iconset")
+        set(IMLAB_ICNS "${CMAKE_CURRENT_BINARY_DIR}/ImLab.icns")
+
+        set(icon_commands COMMAND ${CMAKE_COMMAND} -E make_directory "${IMLAB_ICONSET}")
+        foreach(size 16 32 64 128 256 512)
+            math(EXPR retina_size "${size} * 2")
+            list(APPEND icon_commands
+                COMMAND "${IMLAB_SIPS}" -z ${size} ${size}
+                        "${CMAKE_CURRENT_SOURCE_DIR}/etc/ImLabLogo.png"
+                        --out "${IMLAB_ICONSET}/icon_${size}x${size}.png" > /dev/null
+                COMMAND "${IMLAB_SIPS}" -z ${retina_size} ${retina_size}
+                        "${CMAKE_CURRENT_SOURCE_DIR}/etc/ImLabLogo.png"
+                        --out "${IMLAB_ICONSET}/icon_${size}x${size}@2x.png" > /dev/null)
+        endforeach()
+
+        add_custom_command(OUTPUT "${IMLAB_ICNS}"
+            ${icon_commands}
+            COMMAND "${IMLAB_ICONUTIL}" -c icns "${IMLAB_ICONSET}" -o "${IMLAB_ICNS}"
+            DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/etc/ImLabLogo.png"
+            COMMENT "Building ImLab.icns from etc/ImLabLogo.png"
+            VERBATIM)
+    else()
+        message(STATUS "sips or iconutil not found: ImLab.app will have no icon")
+    endif()
+
+    add_custom_command(OUTPUT "${IMLAB_APP}/Contents/MacOS/imlab"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${IMLAB_APP}/Contents/MacOS"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${IMLAB_APP}/Contents/Resources"
+        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:imlab>" "${IMLAB_APP}/Contents/MacOS/imlab"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/Info.plist"
+                                         "${IMLAB_APP}/Contents/Info.plist"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/etc"
+                                                   "${IMLAB_APP}/Contents/MacOS"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/krn"
+                                                   "${IMLAB_APP}/Contents/MacOS/krn"
+        DEPENDS imlab "${CMAKE_CURRENT_BINARY_DIR}/Info.plist"
+        COMMENT "Assembling ImLab.app"
+        VERBATIM)
+
+    set(IMLAB_APP_ARTIFACTS "${IMLAB_APP}/Contents/MacOS/imlab")
+
+    if(IMLAB_ICNS)
+        add_custom_command(OUTPUT "${IMLAB_APP}/Contents/Resources/ImLab.icns"
+            COMMAND ${CMAKE_COMMAND} -E copy "${IMLAB_ICNS}"
+                                             "${IMLAB_APP}/Contents/Resources/ImLab.icns"
+            DEPENDS "${IMLAB_ICNS}" "${IMLAB_APP}/Contents/MacOS/imlab"
+            VERBATIM)
+        list(APPEND IMLAB_APP_ARTIFACTS "${IMLAB_APP}/Contents/Resources/ImLab.icns")
+    endif()
+
+    # An ad-hoc signature: without one, a bundle copied from another machine is refused
+    # outright on Apple silicon, and the Finder will not launch it.
+    add_custom_target(imlab_app ALL
+        COMMAND codesign --force --sign - --timestamp=none "${IMLAB_APP}"
+        DEPENDS ${IMLAB_APP_ARTIFACTS}
+        COMMENT "Signing ImLab.app")
+
+    install(DIRECTORY "${IMLAB_APP}" DESTINATION "${IMLAB_INSTALL_APPDIR}" USE_SOURCE_PERMISSIONS)
+endif()
 
 install(TARGETS imlab RUNTIME DESTINATION "${IMLAB_INSTALL_BINDIR}")
 install(DIRECTORY etc/ DESTINATION "${IMLAB_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.png")

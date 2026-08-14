@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>@IMLAB_BUNDLE_EXECUTABLE@</string>
+	<key>CFBundleIconFile</key>
+	<string>ImLab</string>
+	<key>CFBundleIdentifier</key>
+	<string>@IMLAB_BUNDLE_IDENTIFIER@</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>ImLab</string>
+	<key>CFBundleDisplayName</key>
+	<string>ImLab</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>@IMLAB_VERSION@</string>
+	<key>CFBundleVersion</key>
+	<string>@IMLAB_VERSION@</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>ImLab is free software; see COPYRIGHT in the source distribution.</string>
+
+	<!-- Retina: without this the window server scales a 1x drawing up, and every canvas ImLab
+	     draws with CD would come out soft. -->
+	<key>NSHighResolutionCapable</key>
+	<true/>
+
+	<!-- ImLab takes image files on the command line and through drag and drop, so say which
+	     ones, and let the Finder hand them over. The list is the formats IM reads that have a
+	     settled uniform type identifier; anything else still opens through File > Open. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.png</string>
+				<string>public.jpeg</string>
+				<string>public.tiff</string>
+				<string>com.compuserve.gif</string>
+				<string>com.microsoft.bmp</string>
+				<string>public.jpeg-2000</string>
+				<string>com.adobe.pdf</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>
