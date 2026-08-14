@@ -47,6 +47,25 @@ nested code and refuses to sign the bundle. So the images and kernels are in
 it previously searched only the executable's own directory and the one above it, which is
 right for the plain executable and finds nothing in a bundle.
 
+## Tests
+
+    cmake -S . -B build -DIMLAB_BUILD_TESTS=ON && cmake --build build
+    ctest --test-dir build              # or: test/run_tests.sh build/imlab
+
+ImLab is a graphical application: what it does is put windows on screen and write files, so the
+tests run the real program with a probe injected into it (`test/imlab_probe.m`,
+`DYLD_INSERT_LIBRARIES`) and drive it through the callbacks its menus use. The windows are made
+transparent and kept out of the Dock while they run, so a test run does not take over the
+desktop.
+
+| scenario | what it covers |
+|---|---|
+| `startup` | the main window comes up and the image named on the command line is opened |
+| `saveas` | File > Save As all the way to a file on disk: the system save panel, then the format dialog, then the compression dialog |
+| `save-edited` | an edit applied from the Process menu, then File > Save, which is deliberately a no-op on an unchanged document |
+
+They need a window server, so they are opt-in rather than part of a default build.
+
 ## What it links against
 
 | Dependency | Where it comes from |

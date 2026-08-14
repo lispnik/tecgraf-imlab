@@ -387,6 +387,31 @@ if(APPLE AND IMLAB_BUILD_APP_BUNDLE)
     install(DIRECTORY "${IMLAB_APP}" DESTINATION "${IMLAB_INSTALL_APPDIR}" USE_SOURCE_PERMISSIONS)
 endif()
 
+# ------------------------------------------------------------------------- tests ----
+#
+# ImLab is a graphical application, so its tests run the real program with a probe injected and
+# drive it through the callbacks its menus use -- see test/imlab_probe.m. They need a window
+# server, so they are opt-in rather than part of a default build.
+
+option(IMLAB_BUILD_TESTS "Register the ImLab tests with CTest (needs a window server)" OFF)
+
+if(IMLAB_BUILD_TESTS AND APPLE)
+    enable_testing()
+
+    foreach(scenario startup saveas save-edited)
+        add_test(NAME imlab_${scenario}
+                 COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/test/run_tests.sh"
+                         "$<TARGET_FILE:imlab>" ${scenario})
+        set_tests_properties(imlab_${scenario} PROPERTIES TIMEOUT 120)
+    endforeach()
+
+    if(IUP_FROM_SOURCE)
+        # so the probe can be built against the same IUP the program is linked to
+        set_tests_properties(imlab_startup imlab_saveas imlab_save-edited
+            PROPERTIES ENVIRONMENT "IUP_ROOT=${IUP_ROOT};IUP_LIB_DIR=${IUP_LIB_DIR}")
+    endif()
+endif()
+
 install(TARGETS imlab RUNTIME DESTINATION "${IMLAB_INSTALL_BINDIR}")
 install(DIRECTORY etc/ DESTINATION "${IMLAB_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.png")
 install(DIRECTORY krn/ DESTINATION "${IMLAB_INSTALL_DATADIR}/krn")
