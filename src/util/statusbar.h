@@ -16,7 +16,15 @@ typedef struct _sbStatusBar
   cdCanvas* sbCanvas;
   int xy_pos, rgb_pos, rgb_size, height;
   char str[512];
+  /* What each of the three areas currently shows. The bar is drawn imperatively -- a caller
+     writes a value and it appears -- but the canvas can be repainted at any time by the window
+     system, and a repaint used to redraw only the empty boxes, so the text vanished. Keeping
+     the strings lets sbRepaint put them back. */
+  char zoom_str[64];
+  char xy_str[64];
+  char msg_str[512];
   long background;
+  long foreground;
 }sbStatusBar;
 
 

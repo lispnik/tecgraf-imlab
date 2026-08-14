@@ -199,6 +199,7 @@ static int cmImportCGM(void)
   return IUP_DEFAULT;
 }
 
+#ifdef WIN32   /* CD provides the Windows metafile drivers only on Windows */
 static int cmImportWMF(void)
 {
   char filename[10240] = "*.wmf";
@@ -218,7 +219,9 @@ static int cmImportWMF(void)
 
   return IUP_DEFAULT;
 }
+#endif
 
+#ifdef WIN32   /* CD provides the Windows metafile drivers only on Windows */
 static int cmImportEMF(void)
 {
   char filename[10240] = "*.emf";
@@ -238,6 +241,7 @@ static int cmImportEMF(void)
 
   return IUP_DEFAULT;
 }
+#endif
 
 static int cmImportRAW(void)
 {
@@ -609,6 +613,7 @@ static int cmExportSVG(Ihandle* self)
   return IUP_DEFAULT;
 }
 
+#ifdef WIN32   /* CD provides the Windows metafile drivers only on Windows */
 static int cmExportWMF(Ihandle* self)
 {
   imlabImageDocument* document = imlabGetCurrentDocument();
@@ -618,7 +623,9 @@ static int cmExportWMF(Ihandle* self)
   imImageViewExportImage(CD_WMF, document->BitmapView.image, filename);
   return IUP_DEFAULT;
 }
+#endif
 
+#ifdef WIN32   /* CD provides the Windows metafile drivers only on Windows */
 static int cmExportEMF(Ihandle* self)
 {
   imlabImageDocument* document = imlabGetCurrentDocument();
@@ -628,6 +635,7 @@ static int cmExportEMF(Ihandle* self)
   imImageViewExportImage(CD_EMF, document->BitmapView.image, filename);
   return IUP_DEFAULT;
 }
+#endif
 
 static int cmExportEPS(Ihandle* self)
 {
@@ -685,8 +693,10 @@ void imlabMainWindowRegisterFileMenu(void)
   IupSetFunction("imlabExportCGM", (Icallback) cmExportCGM);
   IupSetFunction("imlabExportSVG", (Icallback)cmExportSVG);
   IupSetFunction("imlabExportEPS", (Icallback)cmExportEPS);
+#ifdef WIN32
   IupSetFunction("imlabExportEMF", (Icallback) cmExportEMF);
   IupSetFunction("imlabExportWMF", (Icallback) cmExportWMF);
+#endif
   IupSetFunction("imlabPrint", (Icallback) cmPrint);
   IupSetFunction("imlabPrintPS", (Icallback) cmPrintPS);
   IupSetFunction("imlabPrintPDF", (Icallback)cmPrintPDF);
@@ -695,8 +705,10 @@ void imlabMainWindowRegisterFileMenu(void)
   IupSetFunction("imlabOpen", (Icallback) cmOpen);
   IupSetFunction("imlabOpenPreview", (Icallback) cmOpenPreview);
   IupSetFunction("imlabImportCGM", (Icallback) cmImportCGM);
+#ifdef WIN32
   IupSetFunction("imlabImportWMF", (Icallback) cmImportWMF);
   IupSetFunction("imlabImportEMF", (Icallback) cmImportEMF);
+#endif
   IupSetFunction("imlabImportRAW", (Icallback) cmImportRAW);
   IupSetFunction("imlabExportRAW", (Icallback) cmExportRAW);
   IupSetFunction("imlabMainExit", (Icallback) cmMainExit);

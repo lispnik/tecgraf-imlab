@@ -8,8 +8,17 @@
 #include <windows.h>    /* this is necessary only because of the Microsoft OpenGL headers dependency */
 #endif
 
+#ifdef __APPLE__
+/* Apple puts the OpenGL headers in a framework rather than in GL/, and deprecates the whole
+   API in favour of Metal -- the deprecation warnings are silenced here rather than project
+   wide, since this is the only file that draws with OpenGL directly. */
+#define GL_SILENCE_DEPRECATION
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#else
 #include <GL/gl.h>
 #include <GL/glu.h>
+#endif
 
 #include <iup.h>
 #include <iupgl.h>

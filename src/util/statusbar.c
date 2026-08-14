@@ -31,12 +31,24 @@ static void sbDrawBox(sbStatusBar* sb, int pos, int size)
   cdCanvasLine(sb->sbCanvas, pos, sb->height - 3, x2 - 1, sb->height - 3);
 }
 
+/* pos identifies the area, so remembering by position needs no extra argument at each call */
+static void sbRemember(sbStatusBar* sb, int pos)
+{
+  if (pos == STATUS_OFFSET)
+    strcpy(sb->zoom_str, sb->str);
+  else if (pos == sb->xy_pos)
+    strcpy(sb->xy_str, sb->str);
+  else
+    strcpy(sb->msg_str, sb->str);
+}
+
 static void sbDrawTextCenter(sbStatusBar* sb, int pos, int size)
 {
+  sbRemember(sb, pos);
   cdCanvasActivate(sb->sbCanvas);
   cdCanvasForeground(sb->sbCanvas, sb->background);
   cdCanvasBox(sb->sbCanvas, pos + 1, pos + size - 2, 3, sb->height - 4);
-  cdCanvasForeground(sb->sbCanvas, CD_BLACK);
+  cdCanvasForeground(sb->sbCanvas, sb->foreground);
   cdCanvasBackground(sb->sbCanvas, sb->background);
   cdCanvasTextAlignment(sb->sbCanvas, CD_CENTER);
   cdCanvasText(sb->sbCanvas, pos + size / 2, sb->height / 2, sb->str);
@@ -44,10 +56,11 @@ static void sbDrawTextCenter(sbStatusBar* sb, int pos, int size)
 
 static void sbDrawTextLeft(sbStatusBar* sb, int pos, int size)
 {
+  sbRemember(sb, pos);
   cdCanvasActivate(sb->sbCanvas);
   cdCanvasForeground(sb->sbCanvas, sb->background);
   cdCanvasBox(sb->sbCanvas, pos + 1, pos + size - 2, 3, sb->height - 4);
-  cdCanvasForeground(sb->sbCanvas, CD_BLACK);
+  cdCanvasForeground(sb->sbCanvas, sb->foreground);
   cdCanvasBackground(sb->sbCanvas, sb->background);
   cdCanvasTextAlignment(sb->sbCanvas, CD_WEST);
   cdCanvasClip(sb->sbCanvas, CD_CLIPAREA);
@@ -57,6 +70,11 @@ static void sbDrawTextLeft(sbStatusBar* sb, int pos, int size)
 
 void sbClear(sbStatusBar* sb)
 {
+  /* clearing the areas means they are empty after a repaint too */
+  sb->zoom_str[0] = 0;
+  sb->xy_str[0] = 0;
+  sb->msg_str[0] = 0;
+
   cdCanvasActivate(sb->sbCanvas);
   cdCanvasForeground(sb->sbCanvas, sb->background);
   cdCanvasBox(sb->sbCanvas, sb->xy_pos + 1, sb->xy_pos + STATUS_XY - 2, 3, sb->height - 4);
@@ -308,6 +326,25 @@ static int sbRepaint(Ihandle* canvas)
   /* The text can be too longer */
   cdCanvasClipArea(sb->sbCanvas, sb->rgb_pos, sb->rgb_pos + sb->rgb_size, 2, sb->height - 3);
 
+  /* Put the text back. Everything above only repaints the empty boxes, so without this a
+     repaint -- which on macOS follows any drawing done outside one, and elsewhere follows the
+     window being uncovered or resized -- leaves the bar blank. */
+  if (sb->zoom_str[0])
+  {
+    strcpy(sb->str, sb->zoom_str);
+    sbDrawTextCenter(sb, STATUS_OFFSET, STATUS_ZOOM);
+  }
+  if (sb->xy_str[0])
+  {
+    strcpy(sb->str, sb->xy_str);
+    sbDrawTextCenter(sb, sb->xy_pos, STATUS_XY);
+  }
+  if (sb->msg_str[0])
+  {
+    strcpy(sb->str, sb->msg_str);
+    sbDrawTextLeft(sb, sb->rgb_pos, sb->rgb_size);
+  }
+
   return IUP_DEFAULT;
 }
 
@@ -317,6 +354,7 @@ sbStatusBar* sbCreate(Ihandle* canvas)
   int style, size;
 
   sb = (sbStatusBar*)malloc(sizeof(sbStatusBar));
+  memset(sb, 0, sizeof(sbStatusBar));   /* the remembered strings must start empty */
 
   sb->sbCanvas = cdCreateCanvas(CD_IUP, canvas);
 
@@ -335,6 +373,18 @@ sbStatusBar* sbCreate(Ihandle* canvas)
     unsigned char r, g, b;
 	  IupGetRGB(IupGetDialog(canvas), "BGCOLOR", &r, &g, &b); 
 	  sb->background = cdEncodeColor(r, g, b);
+
+	  /* The text used to be drawn in CD_BLACK against this background, which is fine only while
+	     the background is light. On a dark desktop theme the dialog background comes back dark
+	     and the status bar text disappeared into it, so take the matching foreground from the
+	     toolkit as well. DLGFGCOLOR is what IUP reports for text on a dialog background. */
+	  if (IupGetGlobal("DLGFGCOLOR"))
+	    IupGetRGB(NULL, "DLGFGCOLOR", &r, &g, &b);
+	  else
+	  {
+	    r = 0; g = 0; b = 0;
+	  }
+	  sb->foreground = cdEncodeColor(r, g, b);
   }
 
   sbRepaint(canvas);
