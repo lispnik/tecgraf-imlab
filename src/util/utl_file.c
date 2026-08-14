@@ -106,7 +106,14 @@ char* utlFileGetFilenameMultiple(const char* dir, const char* filetitle, int *of
     int dir_size = (int)strlen(dir);
     char* filename = (char*)malloc(size + dir_size + 1);
     memcpy(filename, dir, dir_size);
+    /* The separator was always a backslash, which only names a file on Windows. Selecting
+       several images at once therefore built paths like "/Users/me/pics\a.png" everywhere
+       else, and every one of them failed to open. */
+#ifdef WIN32
     filename[dir_size] = '\\';
+#else
+    filename[dir_size] = '/';
+#endif
     memcpy(filename + dir_size + 1, filetitle, size - 1);
     filename[size + dir_size] = 0;
     *offset += size;
