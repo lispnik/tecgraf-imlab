@@ -244,8 +244,16 @@ if(WIN32)
     target_compile_definitions(imlab PRIVATE USE_VIDEOCAPTURE USE_AVI)
 endif()
 
-find_package(OpenGL REQUIRED)
-target_link_libraries(imlab PRIVATE OpenGL::GL)
+# The 3D view calls into GLU (gluPerspective, gluLookAt, gluUnProject) as well as GL. On macOS
+# both live in the OpenGL framework, so link that directly: FindOpenGL can otherwise resolve to
+# the SDK's libGL stub -- which is what happens when CMAKE_LIBRARY_PATH points at it, as in a
+# Homebrew build -- and that stub carries no GLU.
+if(APPLE)
+    target_link_libraries(imlab PRIVATE "-framework OpenGL")
+else()
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(imlab PRIVATE OpenGL::GL OpenGL::GLU)
+endif()
 
 if(APPLE)
     # IUP is built as frameworks here. iupim and iup_plot are the two that are not, and are
