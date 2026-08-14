@@ -19,42 +19,75 @@ option(IMLAB_ENABLE_FFTW "Use FFTW for the transform operations" ON)
 
 # ---------------------------------------------------------------------------- IUP ----
 #
-# Not a find_package: IUP has no CMake config, and on macOS this build wants a specific tree --
-# the Cocoa port -- rather than whatever might be installed system-wide. Its libraries are built
-# as frameworks; IupPlot and IupIm are not, so they are compiled from source below.
+# Two ways to build against IUP, because it can arrive in two shapes:
+#
+#   installed  a package such as Homebrew's tecgraf-iup: frameworks (or libraries) plus
+#              libiup_plot and libiupim already built.
+#   source     an IUP source tree, given as IUP_ROOT. IupPlot and IupIm are compiled from it,
+#              since IUP itself ships them as source with no build of their own.
+#
+# The source tree wins when one is given, so that working on IUP and on ImLab at the same time
+# does not mean reinstalling IUP between builds.
 
-set(IUP_ROOT "" CACHE PATH "Root of the IUP source tree to build against")
+set(IUP_ROOT "" CACHE PATH "IUP source tree to build against, instead of an installed IUP")
+option(IMLAB_USE_SYSTEM_IUP "Build against an installed IUP even if a source tree is nearby" OFF)
 
-if(NOT IUP_ROOT)
+if(IMLAB_USE_SYSTEM_IUP)
+    set(IUP_ROOT "")
+elseif(NOT IUP_ROOT)
     foreach(candidate
             "$ENV{IUP}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../../iupcocoa-scratch/iup"
-            "$ENV{HOME}/Projects/iupcocoa-scratch/iup")
-        if(candidate AND EXISTS "${candidate}/include/iup.h")
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../../iupcocoa-scratch/iup")
+        if(candidate AND EXISTS "${candidate}/include/iup.h" AND EXISTS "${candidate}/srcplot")
             get_filename_component(IUP_ROOT "${candidate}" ABSOLUTE)
             break()
         endif()
     endforeach()
 endif()
 
-if(NOT IUP_ROOT OR NOT EXISTS "${IUP_ROOT}/include/iup.h")
-    message(FATAL_ERROR
-        "IUP not found. Point -DIUP_ROOT=<path> at an IUP source tree (the one holding "
-        "include/iup.h), or set the IUP environment variable.")
-endif()
+if(IUP_ROOT AND NOT IMLAB_USE_SYSTEM_IUP AND EXISTS "${IUP_ROOT}/include/iup.h")
+    set(IUP_FROM_SOURCE TRUE)
+    set(IUP_INCLUDE_DIR "${IUP_ROOT}/include")
 
-if(APPLE)
-    set(IUP_LIB_DIR "${IUP_ROOT}/BUILD-xcode/Release" CACHE PATH "Where the IUP frameworks are")
-    if(NOT EXISTS "${IUP_LIB_DIR}/iup.framework")
-        message(FATAL_ERROR
-            "No IUP frameworks in ${IUP_LIB_DIR}. Build IUP first (its Xcode project), or set "
-            "-DIUP_LIB_DIR=<path>.")
+    if(APPLE)
+        set(IUP_LIB_DIR "${IUP_ROOT}/BUILD-xcode/Release" CACHE PATH "Where the IUP frameworks are")
+    else()
+        set(IUP_LIB_DIR "${IUP_ROOT}/lib" CACHE PATH "Where the IUP libraries are")
     endif()
+
+    message(STATUS "IUP: ${IUP_ROOT} (source tree)")
 else()
-    set(IUP_LIB_DIR "${IUP_ROOT}/lib" CACHE PATH "Where the IUP libraries are")
+    set(IUP_FROM_SOURCE FALSE)
+
+    find_path(IUP_INCLUDE_DIR iup.h HINTS ENV IUP PATH_SUFFIXES include)
+    find_library(IUP_PLOT_LIBRARY iup_plot HINTS ENV IUP PATH_SUFFIXES lib)
+    find_library(IUP_IM_LIBRARY iupim HINTS ENV IUP PATH_SUFFIXES lib)
+
+    if(APPLE)
+        # An installed IUP is a set of frameworks; find one and take the directory holding it.
+        find_path(IUP_LIB_DIR iup.framework
+            HINTS ENV IUP
+            PATHS /opt/homebrew/opt/tecgraf-iup /usr/local/opt/tecgraf-iup
+            PATH_SUFFIXES Frameworks)
+    else()
+        find_path(IUP_LIB_DIR libiup.so HINTS ENV IUP PATH_SUFFIXES lib)
+    endif()
+
+    if(NOT IUP_INCLUDE_DIR OR NOT IUP_LIB_DIR)
+        message(FATAL_ERROR
+            "IUP not found. Install it (brew install lispnik/tecgraf/tecgraf-iup), or point "
+            "-DIUP_ROOT=<path> at an IUP source tree.")
+    endif()
+
+    if(NOT IUP_PLOT_LIBRARY OR NOT IUP_IM_LIBRARY)
+        message(FATAL_ERROR
+            "Found IUP at ${IUP_INCLUDE_DIR} but not libiup_plot/libiupim beside it. ImLab needs "
+            "both; build against an IUP source tree with -DIUP_ROOT=<path> instead.")
+    endif()
+
+    message(STATUS "IUP: ${IUP_INCLUDE_DIR} (installed)")
 endif()
 
-message(STATUS "IUP: ${IUP_ROOT}")
 message(STATUS "IUP libraries: ${IUP_LIB_DIR}")
 
 # ------------------------------------------------------------------------- IM / CD ----
@@ -94,34 +127,38 @@ if(IMLAB_ENABLE_FFTW)
 endif()
 
 # ------------------------------------------------- IupPlot and IupIm, from IUP source ----
-#
-# These two ship as source in the IUP tree rather than as built libraries, so they are compiled
-# here. That also keeps this build independent of how the IUP tree happened to be built.
 
-add_library(iup_plot STATIC
-    "${IUP_ROOT}/srcplot/iup_plot_ctrl.cpp"
-    "${IUP_ROOT}/srcplot/iup_plot_attrib.cpp"
-    "${IUP_ROOT}/srcplot/iupPlot.cpp"
-    "${IUP_ROOT}/srcplot/iupPlotAxis.cpp"
-    "${IUP_ROOT}/srcplot/iupPlotCalc.cpp"
-    "${IUP_ROOT}/srcplot/iupPlotData.cpp"
-    "${IUP_ROOT}/srcplot/iupPlotDraw.cpp"
-    "${IUP_ROOT}/srcplot/iupPlotTick.cpp")
+if(IUP_FROM_SOURCE)
+    add_library(iup_plot STATIC
+        "${IUP_ROOT}/srcplot/iup_plot_ctrl.cpp"
+        "${IUP_ROOT}/srcplot/iup_plot_attrib.cpp"
+        "${IUP_ROOT}/srcplot/iupPlot.cpp"
+        "${IUP_ROOT}/srcplot/iupPlotAxis.cpp"
+        "${IUP_ROOT}/srcplot/iupPlotCalc.cpp"
+        "${IUP_ROOT}/srcplot/iupPlotData.cpp"
+        "${IUP_ROOT}/srcplot/iupPlotDraw.cpp"
+        "${IUP_ROOT}/srcplot/iupPlotTick.cpp")
 
-target_include_directories(iup_plot PRIVATE
-    "${IUP_ROOT}/include" "${IUP_ROOT}/src" "${IUP_ROOT}/srcplot"
-    "${IUP_ROOT}/srccd"          # iup_cdutil.h, the IUP-to-CD helpers IupPlot draws through
-    "${CD_INCLUDE_DIR}")
+    target_include_directories(iup_plot PRIVATE
+        "${IUP_ROOT}/include" "${IUP_ROOT}/src" "${IUP_ROOT}/srcplot"
+        "${IUP_ROOT}/srccd"          # iup_cdutil.h, the IUP-to-CD helpers IupPlot draws through
+        "${CD_INCLUDE_DIR}")
 
-add_library(iup_im STATIC "${IUP_ROOT}/srcim/iup_im.c")
-target_include_directories(iup_im PRIVATE
-    "${IUP_ROOT}/include" "${IUP_ROOT}/src" "${IM_INCLUDE_DIR}")
+    add_library(iup_im STATIC "${IUP_ROOT}/srcim/iup_im.c")
+    target_include_directories(iup_im PRIVATE
+        "${IUP_ROOT}/include" "${IUP_ROOT}/src" "${IM_INCLUDE_DIR}")
 
-foreach(helper iup_plot iup_im)
-    if(APPLE)
-        target_compile_options(${helper} PRIVATE "-F${IUP_LIB_DIR}")
-    endif()
-endforeach()
+    foreach(helper iup_plot iup_im)
+        if(APPLE)
+            target_compile_options(${helper} PRIVATE "-F${IUP_LIB_DIR}")
+        endif()
+    endforeach()
+
+    set(IUP_EXTRA_LIBRARIES iup_plot iup_im)
+else()
+    # already built and installed beside IUP
+    set(IUP_EXTRA_LIBRARIES ${IUP_PLOT_LIBRARY} ${IUP_IM_LIBRARY})
+endif()
 
 # ---------------------------------------------------------------------- ImLab itself ----
 
@@ -191,10 +228,10 @@ add_executable(imlab ${IMLAB_SOURCES})
 
 target_include_directories(imlab PRIVATE
     src src/windows src/dialogs src/util src/process
-    "${IM_INCLUDE_DIR}" "${CD_INCLUDE_DIR}" "${IUP_ROOT}/include")
+    "${IM_INCLUDE_DIR}" "${CD_INCLUDE_DIR}" "${IUP_INCLUDE_DIR}")
 
 target_link_libraries(imlab PRIVATE
-    iup_plot iup_im
+    ${IUP_EXTRA_LIBRARIES}
     ${IM_PROCESS_LIBRARY} ${IM_JP2_LIBRARY} ${IM_LIBRARY}
     ${CD_LIBRARY})
 

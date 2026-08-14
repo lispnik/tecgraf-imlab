@@ -8,14 +8,25 @@ place; nothing reads them any more.
 
 ## Quick start (macOS)
 
-    brew install tecgraf-im tecgraf-cd fftw
-    cmake -S . -B build -DIUP_ROOT=/path/to/iup
+    brew install lispnik/tecgraf/tecgraf-imlab
+
+or, to build it yourself against installed libraries:
+
+    brew install lispnik/tecgraf/tecgraf-{im,cd,iup} fftw
+    cmake -S . -B build -DIMLAB_USE_SYSTEM_IUP=ON
     cmake --build build -j8
     ./build/imlab
 
-`IUP_ROOT` can be omitted if the `IUP` environment variable is set, or if an IUP tree sits
-beside this one. It must be a **source** tree — IupPlot and IupIm are compiled from it, since
-IUP does not ship them as libraries.
+IUP can arrive in either of two shapes and the build takes both:
+
+- **installed** — a package such as Homebrew's `tecgraf-iup`, which carries `libiup_plot` and
+  `libiupim` already built.
+- **source tree** — pass `-DIUP_ROOT=/path/to/iup` (or set the `IUP` environment variable, or
+  leave an IUP tree beside this one). IupPlot and IupIm are then compiled from it, since IUP
+  ships them as source with no build of their own.
+
+A source tree wins when one is found, so working on IUP and ImLab together does not mean
+reinstalling IUP between builds; `-DIMLAB_USE_SYSTEM_IUP=ON` forces the installed one.
 
 ## What it links against
 
