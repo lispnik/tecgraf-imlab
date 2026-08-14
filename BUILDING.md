@@ -41,10 +41,11 @@ It is assembled from the executable that was just built rather than compiled aga
 separate `MACOSX_BUNDLE` target: it is the same program, and a second target would double the
 build for no difference in the result. `-DIMLAB_BUILD_APP_BUNDLE=OFF` skips it.
 
-The images live in `Contents/MacOS`, beside the executable, rather than in `Contents/Resources`
-where a Mac application would normally keep them -- that is where ImLab looks for `ImLab.png`
-at startup (`load_image_imlab_logo` in `src/splash.cpp` searches the executable's own directory
-and the one above it).
+Nothing but the executable is in `Contents/MacOS`: `codesign` treats every other file there as
+nested code and refuses to sign the bundle. So the images and kernels are in
+`Contents/Resources`, and `load_image_imlab_logo` in `src/splash.cpp` now looks there too --
+it previously searched only the executable's own directory and the one above it, which is
+right for the plain executable and finds nothing in a bundle.
 
 ## What it links against
 

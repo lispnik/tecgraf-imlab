@@ -355,10 +355,13 @@ if(APPLE AND IMLAB_BUILD_APP_BUNDLE)
         COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:imlab>" "${IMLAB_APP}/Contents/MacOS/imlab"
         COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/Info.plist"
                                          "${IMLAB_APP}/Contents/Info.plist"
+        # Everything but the executable goes in Resources. It has to: codesign treats any
+        # other file in Contents/MacOS as nested code and refuses to sign the bundle -- which
+        # is why splash.cpp also looks in Contents/Resources for its image.
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/etc"
-                                                   "${IMLAB_APP}/Contents/MacOS"
+                                                   "${IMLAB_APP}/Contents/Resources"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/krn"
-                                                   "${IMLAB_APP}/Contents/MacOS/krn"
+                                                   "${IMLAB_APP}/Contents/Resources/krn"
         DEPENDS imlab "${CMAKE_CURRENT_BINARY_DIR}/Info.plist"
         COMMENT "Assembling ImLab.app"
         VERBATIM)

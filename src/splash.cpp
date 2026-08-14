@@ -55,6 +55,17 @@ static Ihandle* load_image_imlab_logo(const char* exe_filename)
       sprintf(filename, "%s%s", up_file_path, "ImLab.png");
 
       image = IupLoadImage(filename);
+
+      /* ...and inside a Mac application bundle, in Contents/Resources -- one above the
+         executable's Contents/MacOS. Nothing but the executable itself may live in
+         Contents/MacOS: codesign treats every other file there as nested code and refuses to
+         sign the bundle, so the images cannot simply sit beside the program. */
+      if (!image)
+      {
+        sprintf(filename, "%s%s", up_file_path, "Resources/ImLab.png");
+        image = IupLoadImage(filename);
+      }
+
       free(up_file_path);
     }
   }
